@@ -2,40 +2,46 @@ from numpy import newaxis, arange, zeros, exp, loadtxt, argmax, array
 import astropy.io.fits as pyfits
 import time
 import pylab
+import os
 import sys
-
-
-def check_memory():
-    """
-    This checks if the memory at hand is before
-    attempting to carry out this task. 
-    """
-
-    return True
 
 
 def read_data(image, freq=True):
                                                                               
     """ Read and return image data: ra, dec and freq only"""
-    imagedata = pyfits.getdata(image)
+    with pyfits.open(image) as hdu:
+        imagedata = hdu[0].data
+        header = hdu[0].header
     imslice = zeros(imagedata.ndim, dtype=int).tolist()
     imslice[-1] = slice(None)
     imslice[-2] = slice(None)
     if freq:
         imslice[-3] = slice(None)
-    return imagedata[imslice]
+    return imagedata[imslice], header
 
 
-def check_data_shape(frequencies, data):
+def check_shape(qfits, ufits, frequencies):
     """
-     Checks if the frequencies axis of the data is the
-     same as the provided frequencies. The shame must
-     to proceed.
+    Checks the shape of the cubes and frequency file
     """
+    qhdr =  pyfits.getheader(qfits)
+    uhdr =  pyfits.getheader(ufits)
     
-    return
+    errors = []
+    axis = ['naxis1', 'naxis2', 'naxis3']
+    if [qhdr['naxis'] < 3 or uhdr['naxis'] < 3:
+        errors.append('The dimensions of Q = %d and U = %d, not >=3.' %(qhdr['naxis'], uhdr['naxis']))
+    if qhdr['naxis'] != uhdr['naxis']:
+        if qhdr['naxis'] >= 3 and uhdr['naxis'] >=3:
+             for ax in axis:
+                 if qhdr[ax] != uhdr[ax]
+                      errors.append('%s for Q is != %d of U.' %(qhdr[ax], uhdr[ax]))
+    if qhdr[axis[2]] != len(frequencies) or uhdr[axis[2]] != len(frequencies):
+        errors.append('Frequencies axis of the cubes differs from the length of the frequency file provided.')    
+            
+    return errors
 
- 
+
 def create_mask():
     """
     This creates a mask. This mask is used upon the 
@@ -45,8 +51,6 @@ def create_mask():
     a mask or threshold is used -- the mask in this
     case will be created. 
     """
-    
-
     return maskfits
 
 
@@ -85,21 +89,34 @@ def add_phi_to_fits_header(fits_header, phi_array):
 
 
 
-def main(freq, qfits, ufits, wavelengths, phi_max=None, phi_min=None,
+def main(freq, qfits, ufits, phi_max=None, phi_min=None,
          dphi=None, rmsf_plot=False, prefix=None):
 
     ##TODO: check if there is enough space to carry this out.
-
     
-    frequencies = loadtxt(freq)
+    
+    try:
+        frequencies = loadtxt(freq)
+    except ValueError:
+        sys.exit("There seems to be a problem with you frequency file. "
+                 "This file should be a text file with no strings. ")
+    
+    errors = check_shape(qfits, ufits, frequencies)
+    if len(errors) > 0:
+        print(errors)
+        sys.exit()
+
     wavelengths =  (299792458.0/frequencies)**2 
-    qdata = read_data(qfits)
-    udata = read_data(ufits)
-        
-    if array([phi_max, phi_min, dphi]).any() is None: 
-        phi_max = (1.9/abs(numpy.diff(wavelengths)).max()) * 2.0
+    qdata, qhdr = read_data(qfits)
+    udata, uhdr = read_data(ufits)
+       
+    # if the user does not provide Faraday depth interval
+    # we attempt to compute this internally. 
+    if phi_max is None or phi_min is None or dphi is None: 
+        phi_max = (1.9/abs(numpy.diff(wavelengths)).max()) * 3.0
         dphi = (3.8/abs(wavelengths[0] - wavelengths[-1]))/3.0
         phi_min = -phi_max
+
         
     phi_sample =  arange(phi_min, phi_max, dphi)
 
@@ -116,14 +133,13 @@ def main(freq, qfits, ufits, wavelengths, phi_max=None, phi_min=None,
         RMSF = phase.T.sum(1)[:, 0, 0]/len(wavelengths)
         pylab.plot(phi_sample, absolute(RMSF), '--')
         pylab.savefig(prefix + '-RM.PNG')
-    
-    qheader = pyfits.getheader(qfits)
-    uheader = pyfits.getheader(ufits)
-    qhdr = add_phi_to_fits_header(qheader, phi_sample)
-    uhdr = add_phi_to_fits_header(uheader, phi_sample)
+   
+    qhdr_fara = add_phi_to_fits_header(qhdr, phi_sample)
+    uhdr_fara = add_phi_to_fits_header(uhdr, phi_sample)
     if raw:
         QFAR_DEPTH = Faraday_Dispersion.real
         UFAR_DEPTH = Faraday_Dispersion.imag
+
         pyfits.writeto(prefix + '-QFAR.FITS', QFAR_DEPTH, 
                        qhdr, clobber=True)
         pyfits.writeto(prefix + '-UFAR.FITS', UFAR_DEPTH, 
