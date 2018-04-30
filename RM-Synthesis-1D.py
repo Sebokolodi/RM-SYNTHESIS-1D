@@ -1,24 +1,33 @@
-from numpy import newaxis, arange, zeros, exp, loadtxt, argmax, array
+#!/usr/bin/env python
+## Lerato Sebokolodi <mll.sebokolodi@gmail.com>
+import numpy
 import astropy.io.fits as pyfits
 import time
 import pylab
 import os
 import sys
+from multiprocessing import Pool
+import argparse
+
 
 
 def read_data(image, freq=True):
                                                                               
     """ Read and return image data: ra, dec and freq only"""
-    with pyfits.open(image) as hdu:
-        imagedata = hdu[0].data
-        header = hdu[0].header
-    imslice = zeros(imagedata.ndim, dtype=int).tolist()
-    imslice[-1] = slice(None)
-    imslice[-2] = slice(None)
-    if freq:
-        imslice[-3] = slice(None)
-    return imagedata[imslice], header
-
+    try:
+        with pyfits.open(image) as hdu:
+            imagedata = hdu[0].data
+            header = hdu[0].header
+        imslice = numpy.zeros(imagedata.ndim, dtype=int).tolist()
+        imslice[-1] = slice(None)
+        imslice[-2] = slice(None)
+        if freq:
+            imslice[-3] = slice(None)
+        print('>>> Image %s loaded sucessfully. '%image)
+        return imagedata[imslice], header
+    except OSError:
+        sys.exit('>>> could not load %s. Aborting...'%image)
+        
 
 def check_shape(qfits, ufits, frequencies):
     """
@@ -29,42 +38,39 @@ def check_shape(qfits, ufits, frequencies):
     
     errors = []
     axis = ['naxis1', 'naxis2', 'naxis3']
-    if [qhdr['naxis'] < 3 or uhdr['naxis'] < 3:
-        errors.append('The dimensions of Q = %d and U = %d, not >=3.' %(qhdr['naxis'], uhdr['naxis']))
+    if qhdr['naxis'] < 3 or uhdr['naxis'] < 3:
+        errors.append('The dimensions of Q = %d and U = %d, not >=3.' %(
+               qhdr['naxis'], uhdr['naxis']))
     if qhdr['naxis'] != uhdr['naxis']:
         if qhdr['naxis'] >= 3 and uhdr['naxis'] >=3:
              for ax in axis:
-                 if qhdr[ax] != uhdr[ax]
+                 if qhdr[ax] != uhdr[ax]:
                       errors.append('%s for Q is != %d of U.' %(ax, qhdr[ax], uhdr[ax]))
     if qhdr[axis[2]] != len(frequencies) or uhdr[axis[2]] != len(frequencies):
-        errors.append('Frequencies axis of the cubes differs from the length of the frequency file provided.')    
+        errors.append('Freq-axis of the cubes differ from that of the '
+           'frequency file provided.')
             
     return errors
 
 
 def create_mask(image):
     """
-    This creates a mask. This mask is used upon the 
-    user's request. It is recommended when creating
-    RM maps -- since one doesn't want to find peaks
-    for noisy areas. If clean components are requested
-    a mask or threshold is used -- the mask in this
-    case will be created. 
+    This creates a mask.
     """
 
     return 
-
 
 
 def faraday_phase(phi_sample, wavelengths):       
     
     """return phase term of the Faraday spectrum """
     # ra, dec, wavelengths, faraday depth
-    expo = zeros([1, 1, len(wavelengths), len(phi_sample)], dtype=complex)            
+    phase = numpy.zeros([len(phi_sample), len(wavelengths)], dtype=numpy.complex64)  
+    derotated_wavelength = wavelengths - wavelengths.mean()
     for i, phi in enumerate(phi_sample):                  
-        expo[:, :, :, i] = exp(-2 * 1j * phi * (wavelengths -wavelengths.mean()))
+        phase[i, :] = numpy.exp(-2 * 1j * phi * derotated_wavelength )
                               
-    return expo 
+    return phase
 
 
 
@@ -84,107 +90,109 @@ def add_RM_to_fits_header(header, phi_sample=None):
                   'cunit3': 'rad/m^2'}
     else:
         new_hdr = {'naxis': 3, 'naxis3': 1, 'cunit3': 'rad/m^2', 
-                   'ctype3'='RM'}
+                   'ctype3':'RM'}
 
     hdr.update(new_hdr) 
     return hdr
 
 
-def faraday_depth_interval(wavelengths):
+def faraday_depth_interval(wavelengths, phi_max=None,  
+                       phi_min=None, dphi=None):
 
     """Computes the RM interval and resolution"""
+    if phi_max is None:
+        phi_max = (1.9/abs(numpy.diff(wavelengths)).max())
 
-    # sampling twice the lowest interval. This requires improvement
-    phi_max = (1.9/abs(numpy.diff(wavelengths)).max()) * 2.0
-    phi_min = -phi_max
-    # sampling 1/3 the resolution
-    dphi = (3.8/abs(wavelengths[0] - wavelengths[-1]))/3.0
+    if phi_min is None:
+       phi_min = -phi_max
+
+    if dphi is None:
+       dphi = (3.8/abs(wavelengths[0] - wavelengths[-1]))/3.0
 
     return phi_max, phi_min, dphi
 
 
-def main(freq, qfits, ufits, phi_max=None, phi_min=None,
-         dphi=None, rmsf_plot=False, prefix=None, maskfits=None,
-         raw=True, clean=False, derotate=False):
 
-    ##TODO: check if there is enough space to carry this out.
+def compute_dispersion(x, y):
+   
+    """Computes Faraday Dispersion of a pixel in question"""
+
+    start = time.time()
+    P = qdata[:, x, y] + 1j * udata[:, x, y]
+    dispersion = numpy.sum(P * phase, axis=1)/N_wave
+    end = time.time()
+    print('Time %.6f secs for (%d, %d)'%(end-start, x, y))
+    return dispersion
+
+
+
+
+
+if __name__=='__main__':
+
+    parser = argparse.ArgumentParser(description='Performs 1-D RM Synthesis. '
+             'It requires Stokes Q and U image cubes as well as a frequency '
+             'in text format. These cubes should be (312), freq, ra, dec. '
+             'There is an option for multi-processing, see numProcessor. '
+             'The outputs are the Faraday dispersion (FD) cube, RM map derived '
+             'from peak in FD spectrum. A png plot of the RMSF. ')
+    add = parser.add_argument
+    add('-q', '--qcube', dest='qfits', help='Stokes Q cube (fits)')
+    add('-u', '--ucube', dest='ufits', help='Stokes U cube (fits)')
+    add('-f', '--freq', dest='freq', help='Frequency file (text)')  
+    add('-np', '--numpr', dest='numProcessor', help='number of cores to use. Default 1.', 
+        default=1, type=int)
+    add('-rn', '-rm-min', dest='phi_min', help='Minimum Faraday depth. Default None. '
+       'If not specified will be determined internally. See Brentjens (2005) paper.',
+       type=float, default=None)
+    add('-rx', '-rm-max', dest='phi_max', help='Maximum Faraday depth. See -rn.',
+       type=float, default=None)
+    add('-rs', '-rm-sample', dest='dphi', help='The sampling width in Faraday-space.',
+        type=float, default=None)
+    add('-o', '--prefix', dest='prefix', help='This is a prefix for output files.')
+    
+    
+    args = parser.parse_args()
 
     try:
-        frequencies = loadtxt(freq)
+        frequencies = numpy.loadtxt(args.freq)
     except ValueError:
-        sys.exit("There seems to be a problem with you frequency file. "
-                 "This file should be a text file with no strings. ")
+        sys.exit(">>> Problem found with frequency file. It should be a text file")
     
-    errors = check_shape(qfits, ufits, frequencies)
+    
+    errors = check_shape(args.qfits, args.ufits, frequencies)
     if len(errors) > 0:
         print(errors)
         sys.exit()
-
+  
     wavelengths =  (299792458.0/frequencies)**2 
-    qdata, qhdr = read_data(qfits)
-    udata, uhdr = read_data(ufits)
-       
-    # if the user does not provide Faraday depth interval
-    # we attempt to compute this internally. 
-    if phi_max is None or phi_min is None or dphi is None: 
-        phi_max, phi_min, dphi = faraday_depth_interval(wavelengths)
-    phi_sample =  arange(phi_min, phi_max, dphi)
+    qdata, qhdr = read_data(args.qfits) # run Q-cube 
+    udata, uhdr = read_data(args.ufits) # run U-cube
 
-    P = qdata +  1j * udata
-    P_new  = P[newaxis, ...]
-    phase  = faraday_phase(phi_sample, wavelengths)
+    
+    phi_max, phi_min, dphi = faraday_depth_interval(wavelengths, args.phi_max, 
+                         args.phi_min, args.dphi)
+    phi_sample =  numpy.arange(phi_min, phi_max, dphi)
+    print('>>> Maximum RM = %.2f, minimum RM =%.2f, in steps of %.2f rad/m^2'\
+          %(phi_max, phi_min, dphi))
 
-    start =  time.time()
-    Faraday_Dispersion = (P_new * phase.T ).sum(1)/len(wavelengths)
-    Faraday_amp = numpy.absolute(Faraday_Dispersion)
-    peaks = argmax(Faraday_amp, axis=0)
-    RM_peak = phi_sample[peaks]
-    end = time.time()
-    print('Total elapsed time %d'% (end-start))
-    rmhdr = add_RM_to_fits_header(qhdr, phi_sample=1):
+    phase = faraday_phase(phi_sample, wavelengths)
+    N_wave, N_x, N_y = qdata.shape
+    N_phi = len(phi_sample)
+    
 
-    #TODO: Add an option to create a mask inside code.    
-    if maskfits:
-         mask, mhdr =  read_data(maskfits, freq=False)
-         RM_new = mask * RM_peak
-    else:
-        RM_new = RM_peak
-        print('No mask was provide. Expect pleasing results. ')
+    x, y = numpy.indices((N_x, N_y))
+    x = x.flatten()
+    y = y.flatten()
+    Faraday_Dispersion = numpy.zeros([N_phi, N_x, N_y ], dtype=numpy.complex64)
 
-    pyfits.writeto(prefix + '-RM.FITS', RM_new, rmhdr, clobber=True)
-       
-    if rmsf_plot:
-        RMSF = phase.T.sum(1)[:, 0, 0]/len(wavelengths)
-        pylab.plot(phi_sample, absolute(RMSF), '--')
-        pylab.savefig(prefix + '-RMSF.PNG')
+    pool = Pool(args.numProcessor)  
+    for (xx, yy) in zip(x, y):  
+       Faraday_Dispersion[:, xx, yy] = pool.apply(compute_dispersion, args=(xx, yy))
    
-    qhdr_RM = add_RM_to_fits_header(qhdr, phi_sample)
-    uhdr_RM = add_RM_to_fits_header(uhdr, phi_sample)
-    
-    if raw:
-        QFAR_DEPTH = Faraday_Dispersion.real
-        UFAR_DEPTH = Faraday_Dispersion.imag
-
-        pyfits.writeto(prefix + '-QFAR.FITS', QFAR_DEPTH, 
-                       qhdr_RM, clobber=True)
-        pyfits.writeto(prefix + '-UFAR.FITS', UFAR_DEPTH, 
-                       uhdr_RM, clobber=True)
-    if clean:
-         print('Hello')
-
-    if derotate:
-         print('Derotating')
-
-    
- 
-#TEST  
-freq  = ''
-ufits = ''
-qfits = ''
-
-main(freq, qfits, ufits, phi_max=None, phi_min=None,
-         dphi=None, rmsf_plot=False, prefix=None, maskfits=None,
-         raw=True, clean=False, derotate=False)
-
-
-
+    Faraday_amp = numpy.absolute(Faraday_Dispersion)
+    peaks = numpy.argmax(Faraday_amp, axis=0)
+    RM_peak = phi_sample[peaks]
+    rmhdr = add_RM_to_fits_header(qhdr, phi_sample=[1])
+    args.prefix = args.prefix or args.qfits
+    pyfits.writeto(args.prefix + '-RM.FITS', RM_peak, rmhdr, overwrite=True)
