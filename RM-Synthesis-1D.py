@@ -2,7 +2,7 @@
 ## Lerato Sebokolodi <mll.sebokolodi@gmail.com>
 
 import numpy
-import astropy.io.fits as pyfits
+import pyfits
 import time
 import sys
 from multiprocessing import Pool
@@ -155,6 +155,8 @@ if __name__=='__main__':
     #TODO: 1) RM cleaning, '
     #TODO: 2) derotated the observed PA by RM_peak *wavelengths^2
     #TODO: 3) take mask
+    #TODO: 4) add log file.
+    #TODO: 5) turn this into a software
 
     args = parser.parse_args()
 
