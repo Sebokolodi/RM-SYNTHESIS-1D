@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 ## Lerato Sebokolodi <mll.sebokolodi@gmail.com>
+
 import numpy
 import astropy.io.fits as pyfits
 import time
-import pylab
-import os
 import sys
 from multiprocessing import Pool
 import argparse
+
 
 
 
@@ -134,8 +134,8 @@ if __name__=='__main__':
              'It requires Stokes Q and U image cubes as well as a frequency '
              'in text format. These cubes should be (312), freq, ra, dec. '
              'There is an option for multi-processing, see numProcessor. '
-             'The outputs are the Faraday dispersion (FD) cube, RM map derived '
-             'from peak in FD spectrum. A png plot of the RMSF. ')
+             'The outputs are the Q and U  of Faraday dispersion (FD) cube, '
+             'RM map derived from peak in FD spectrum. A png plot of the RMSF. ')
     add = parser.add_argument
     add('-q', '--qcube', dest='qfits', help='Stokes Q cube (fits)')
     add('-u', '--ucube', dest='ufits', help='Stokes U cube (fits)')
@@ -152,6 +152,10 @@ if __name__=='__main__':
     add('-o', '--prefix', dest='prefix', help='This is a prefix for output files.')
     
     
+    #TODO: 1) RM cleaning, '
+    #TODO: 2) derotated the observed PA by RM_peak *wavelengths^2
+    #TODO: 3) take mask
+
     args = parser.parse_args()
 
     try:
@@ -194,5 +198,11 @@ if __name__=='__main__':
     peaks = numpy.argmax(Faraday_amp, axis=0)
     RM_peak = phi_sample[peaks]
     rmhdr = add_RM_to_fits_header(qhdr, phi_sample=[1])
-    args.prefix = args.prefix or args.qfits
+    args.prefix = args.prefix or args.qfits.split('.')[0]
     pyfits.writeto(args.prefix + '-RM.FITS', RM_peak, rmhdr, overwrite=True)
+    
+    fdhdr = add_RM_to_fits_header(qhdr, phi_sample=phi_sample)
+    pyfits.writeto(args.prefix + '-QDISPER.FITS', Faraday_Dispersion.real, fdhdr, overwrite=True)
+    pyfits.writeto(args.prefix + '-UDISPER.FITS', Faraday_Dispersion.imag, fdhdr, overwrite=True)
+    
+
