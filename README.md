@@ -1,35 +1,3 @@
-# RM-SYNTHESIS-1D
-Description:
-This code performs RM synthesis on a data cube with RA, DEC and FREQ axis. 
+RM Sythesis is technique used to transform polarized intensity between wavelength-space (lambda) and faraday-space (RM). The details can be found in Brentjen & de Bruyn (2005). The Fourier relation is given as:
 
-
-
-Inputs:
-
-1. Stokes Q cube
-2. Stokes U cube
-
-NB: These cubes must have the same shape. Most importantly, have RA, DEC and FREQUENCY AXIS. 
-
-3. Frequency file. Must be a txt file with no strings.
-
-NB: The FREQUENCY axis of these data cubes must be equal to the length of the frequencies provided. 
-
-
-
-
-Outputs:
-
-1. We compute the product P * exp(-2 i RM wavelength^2) in a matrix form. By doing so, this considers all pixels at once instead of looping through them. Thus, the process is much faster but uses a lot for processing memory.
-
-2. We return Q(RM) and U(RM) cubes.
-3. A PNG plot of the RM spread function.
-4. A FITS file of the RM corresponding to the peak in Faraday Dispersion Spectra.
-3. There is an option to return the derotated Q(RM) and U(RM). These are cubes after removing contributions from RM peak.
-4. Another option is to return RM Cleaned components:  Still to incorporate.
-
-
-How to run:
-
-
-
+This technqiue becomes computationally expensive in wide-fields and large spectral coverages. Particular, if one is to compute this Fourier transform for each pixel. Such is expected for sky surveys for instance. Thus, it is appropriate and relevant that we seek to optimize this technique. In the original implementation, each plane in lambda-space was considered at once, although this is reason and much faster, it becomes infeasible for large dataset as these have to be loaded into memory. Thus, here we evaluate each pixel individually but we have implemented multiprocessing (and we intend to extend this to GPUs) so that multiple cores can carry this task. 
