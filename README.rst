@@ -7,11 +7,11 @@ In our RM-Synthesis code, we evaluate each pixel at a time. This approach as is 
 
 1. Installation:
 
+pip install RMSYNTHESIS
 
 
-
-
-
-
-2. Executing:
+Dependencies:
+1. Numpy
+2. Multiprocessing
+3. Astropy
 
