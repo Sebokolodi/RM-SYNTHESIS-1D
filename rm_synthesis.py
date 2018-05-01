@@ -2,7 +2,7 @@
 ## Lerato Sebokolodi <mll.sebokolodi@gmail.com>
 
 import numpy
-import pyfits
+import astropy.io.fits as pyfits
 import time
 import sys
 from multiprocessing import Pool
