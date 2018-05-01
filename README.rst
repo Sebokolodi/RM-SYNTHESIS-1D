@@ -11,6 +11,7 @@ pip install RMSYNTHESIS
 
 
 Dependencies:
+
 1. Numpy
 2. Multiprocessing
 3. Astropy
