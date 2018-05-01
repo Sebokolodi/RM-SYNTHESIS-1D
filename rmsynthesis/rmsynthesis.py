@@ -218,5 +218,4 @@ def main():
     pyfits.writeto(args.prefix + '-UDISPER.FITS', Faraday_Dispersion.imag, fdhdr, clobber=True)
     
     
-main()
 
