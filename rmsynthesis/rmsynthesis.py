@@ -138,7 +138,8 @@ def main():
              'in text format. These cubes should be (312), freq, ra, dec. '
              'There is an option for multi-processing, see numProcessor. '
              'The outputs are the Q and U  of Faraday dispersion (FD) cube, '
-             'RM map derived from peak in FD spectrum. A png plot of the RMSF. ')
+             'RM map derived from peak in FD spectrum. Saves the RMSF in txt 
+              together with the RM range.')
     add = parser.add_argument
     add("-v","--version", action="version",version=
         "{:s} version {:s}".format(parser.prog, __version__))
@@ -210,7 +211,8 @@ def main():
 
     rmhdr = add_RM_to_fits_header(qhdr, phi_sample=[1])
     fdhdr = add_RM_to_fits_header(qhdr, phi_sample=phi_sample)
-    numpy.savetxt(args.prefix + '-RMSF.txt', numpy.sum(phase, axis=1))
+    numpy.savetxt(args.prefix + '-RMSF.txt', numpy.vstack((phi_sample, 
+            numpy.sum(phase, axis=1))))
     pyfits.writeto(args.prefix + '-RM.FITS', RM_peak, rmhdr, clobber=True)
     pyfits.writeto(args.prefix + '-QDISPER.FITS', Faraday_Dispersion.real, fdhdr, clobber=True)
     pyfits.writeto(args.prefix + '-UDISPER.FITS', Faraday_Dispersion.imag, fdhdr, clobber=True)
