@@ -205,11 +205,13 @@ def main():
     Faraday_amp = numpy.absolute(Faraday_Dispersion)
     peaks = numpy.argmax(Faraday_amp, axis=0)
     RM_peak = phi_sample[peaks]
-    rmhdr = add_RM_to_fits_header(qhdr, phi_sample=[1])
+    # define  the prefix of the output data
     args.prefix = args.prefix or args.qfits.split('.')[0]
-    pyfits.writeto(args.prefix + '-RM.FITS', RM_peak, rmhdr, clobber=True)
-    
+
+    rmhdr = add_RM_to_fits_header(qhdr, phi_sample=[1])
     fdhdr = add_RM_to_fits_header(qhdr, phi_sample=phi_sample)
+    numpy.savetxt(args.prefix + '-RMSF.txt', numpy.sum(phase, axis=1))
+    pyfits.writeto(args.prefix + '-RM.FITS', RM_peak, rmhdr, clobber=True)
     pyfits.writeto(args.prefix + '-QDISPER.FITS', Faraday_Dispersion.real, fdhdr, clobber=True)
     pyfits.writeto(args.prefix + '-UDISPER.FITS', Faraday_Dispersion.imag, fdhdr, clobber=True)
     
