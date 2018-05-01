@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 ## Lerato Sebokolodi <mll.sebokolodi@gmail.com>
 
 import numpy
