@@ -176,7 +176,8 @@ def main():
     if len(errors) > 0:
         print(errors)
         sys.exit()
-  
+    global qdata, udata, phase, N_wave
+
     wavelengths =  (299792458.0/frequencies)**2 
     qdata, qhdr = read_data(args.qfits) # run Q-cube 
     udata, uhdr = read_data(args.ufits) # run U-cube
@@ -197,7 +198,7 @@ def main():
     x = x.flatten()
     y = y.flatten()
     Faraday_Dispersion = numpy.zeros([N_phi, N_x, N_y ], dtype=numpy.complex64)
-    start_all= time.time()
+    start_all = time.time()
     pool = Pool(args.numProcessor)  
     for (xx, yy) in zip(x, y):  
        Faraday_Dispersion[:, xx, yy] = pool.apply(compute_dispersion, args=(xx, yy))
