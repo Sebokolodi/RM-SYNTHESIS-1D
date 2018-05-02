@@ -211,7 +211,7 @@ def main():
 
     # define  the prefix of the output data
     args.prefix = args.prefix or args.qfits.split('.')[0]
-    phase_amp = numpy.absolute(numpy.sum(phase, axis=1) )
+    phase_amp = numpy.absolute(numpy.sum(phase, axis=1) )/N_wave
 
     rmhdr = add_RM_to_fits_header(qhdr, phi_sample=[1])
     fdhdr = add_RM_to_fits_header(qhdr, phi_sample=phi_sample)

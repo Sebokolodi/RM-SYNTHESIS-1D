@@ -1,4 +1,4 @@
-# 0.1.3
+# 0.1.4
 
-Moved from version 0.1.2 to 0.1.3
-RMSF amplitude written to text file
+Moved from version 0.1.3 to 0.1.4
+Fixed: normalize RMSF 
