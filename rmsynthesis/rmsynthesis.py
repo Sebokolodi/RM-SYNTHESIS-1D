@@ -216,6 +216,3 @@ def main():
     pyfits.writeto(args.prefix + '-RM.FITS', RM_peak, rmhdr, clobber=True)
     pyfits.writeto(args.prefix + '-QDISPER.FITS', Faraday_Dispersion.real, fdhdr, clobber=True)
     pyfits.writeto(args.prefix + '-UDISPER.FITS', Faraday_Dispersion.imag, fdhdr, clobber=True)
-    
-    
-
