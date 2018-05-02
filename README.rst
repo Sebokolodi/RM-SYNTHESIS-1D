@@ -12,8 +12,7 @@ In our RM-Synthesis code, we evaluate each pixel at a time. This is the less opt
 
 **Installation:**
 
-pip install RMSYNTHESIS
-
+pip install rm-synthesis
 
 **Dependencies:**
 
