@@ -6,7 +6,7 @@ This technqiue can become computationally expensive particularly in modern days 
 
 In the original implementation of this technique and to my best of knowledge, all pixels within a channel are evaluated at once or say "per frame". Although this is might have been optimum approach at that time, the large dataset (in this case data cubes) produced by current radio instruments makes such matrix multiplication either computationally expensive or even impossible.
 
-In our RM-Synthesis code, we evaluate each pixel at a time. This approach is the less optimum approach on earth but fortunately, due to multi-core CPUs, we have incorporated multiprocessing (and we intend to extend this to GPUs) so that multiple pixels can we evaluated at once. We tested this on the 2048x2048x1000 cube images of Cyngus A (1000 channels).  Without parallel processing, this task takes over > 20 hours to run and with multi-processing using 6 cores this takes 2 hours. When using the original approach we described above, we encounter Memory Error since the combined data size of our Stokes Q and U is 33 GB. 
+In our RM-Synthesis code, we evaluate each pixel at a time. This is the less optimum approach on earth but fortunately, due to multi-core CPUs, we have incorporated multiprocessing (and we intend to extend this to GPUs) so that multiple pixels can we evaluated at once. We tested this on the 2048x2048x1000 cube images of Cyngus A (1000 channels).  Without parallel processing, this task takes over > 20 hours to run and with multi-processing using 6 cores this takes 2 hours. When using the original approach we described above, we encounter Memory Error since the combined data size of our Stokes Q and U is 33 GB. 
 
 **Installation:**
 
