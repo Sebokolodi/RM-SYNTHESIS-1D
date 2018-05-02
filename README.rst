@@ -16,3 +16,35 @@ Dependencies:
 2. Multiprocessing
 3. Astropy
 
+
+Data Requirements:
+1. Stokes Q and U FITS data cubes - shape 312 that is frequency, ra and dec.
+2. Frequencies file - only text file is supported. 
+The number of frequencies in 2. but be the same as in 1.
+
+How to run the code:
+
+1. You can check for all the inputs using:
+
+            rmsynthesis -h
+            
+2. The require inputs (non-optional inputs are Stokes Q and U, and a frequency file). 
+
+
+            rmsynthesis -q Q.fits -u U.fits -f freq.txt 
+            
+3. If you want your outputs to have a certain name, then you can specify the prefix by adding:
+
+            rmsynthesis -q Q.fits -u U.fits -f freq.txt -o myprefix
+            
+4. You have an option to specify the range of Faraday depth by specifying the maximum, mininum and the sample width. These are in rad/m^2.
+
+            rmsynthesis -q Q.fits -u U.fits -f freq.txt -rn -3000 -rx 3000 -rs 30
+
+5. Another option is to include multiprocessing. This is highly recommended for speeding up the process especially if you going to be dealing with large images. 
+
+            rmsynthesis -q Q.fits -u U.fits -f freq.txt -np 3
+
+NB: 3 is the number of cores to use.
+
+
