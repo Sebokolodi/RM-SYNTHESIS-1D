@@ -138,8 +138,8 @@ def main():
              'in text format. These cubes should be (312), freq, ra, dec. '
              'There is an option for multi-processing, see numProcessor. '
              'The outputs are the Q and U  of Faraday dispersion (FD) cube, '
-             'RM map derived from peak in FD spectrum. Saves the RMSF in txt 
-              together with the RM range.')
+             'RM map derived from peak in FD spectrum. Saves the RMSF in txt ' 
+             'together with the RM range.')
     add = parser.add_argument
     add("-v","--version", action="version",version=
         "{:s} version {:s}".format(parser.prog, __version__))
