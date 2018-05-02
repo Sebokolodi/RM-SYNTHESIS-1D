@@ -1,6 +1,6 @@
 **Description:**
 
-RM-Synthesis is technique used to transform polarised intensity measured in wavelength-space (lambda) to polarised intensity in Faraday-space (RM) -- see Brentjen & de Bruyn (2005) for more details.  
+RM-Synthesis is technique used to transform polarised intensity measured in wavelength-space (lambda) to polarised intensity in Faraday-space (RM) -- see Brentjen & de Bruyn (2005) for more details.  Or vice versa.
 
 This technqiue can become computationally expensive particularly in modern days of cutting edge radio instruments. For example, wide-field images (or observations) would imply a large number of line-of-sights (pixels) to evaluate for Faraday Rotated emission, and wide spectral-bandwidth observations -- a necessary requirement for this technique -- would imply a large number of channels to average across. The combination of these two will result in an enourmous amount of data -- making optimization of RM-Synthesis technqiue very important. Particularly for all-sky surveys such as VLASS, whereby all pixels need to be evaluated. In some cases though, if a user is mainly interested in a subset of pixels located in a particular region of the pixel map, e.g a radio galaxy/compact or extended emission, then the computation for this can be minimized but to a certain degree.
 
@@ -34,7 +34,7 @@ NB:The number of frequencies in 2 myst be the same as in 1.
 
                                   ``rmsynthesis -h``
             
-2. The require inputs (non-optional inputs are Stokes Q and U, and a frequency file). 
+2. The required inputs are (non-optional inputs are Stokes Q and U, and a frequency file): 
 
                                   ``rmsynthesis -q Q.fits -u U.fits -f freq.txt``
             
@@ -42,7 +42,7 @@ NB:The number of frequencies in 2 myst be the same as in 1.
 
                                   ``rmsynthesis -q Q.fits -u U.fits -f freq.txt -o myprefix``
             
-4. You have an option to specify the range of Faraday depth by specifying the maximum, mininum and the sample width. These are in rad/m^2.
+4. You have an option to specify the range of Faraday depth by specifying the maximum, mininum and the sample width. These are in rad/m^2. Others these will be determined internally -- but we do not gurantee optimum values so be mindful of this.
 
                                  ``rmsynthesis -q Q.fits -u U.fits -f freq.txt -rn -3000 -rx 3000 -rs 30``
 
