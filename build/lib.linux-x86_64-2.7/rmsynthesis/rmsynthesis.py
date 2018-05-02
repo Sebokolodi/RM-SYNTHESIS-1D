@@ -32,6 +32,7 @@ def read_data(image, freq=True):
         sys.exit('>>> could not load %s. Aborting...'%image)
         
 
+
 def check_shape(qfits, ufits, frequencies):
     """
     Checks the shape of the cubes and frequency file
@@ -55,19 +56,11 @@ def check_shape(qfits, ufits, frequencies):
             
     return errors
 
-
-def create_mask(image):
-    """
-    This creates a mask.
-    """
-
-    return 
-
+ 
 
 def faraday_phase(phi_sample, wavelengths):       
     
     """return phase term of the Faraday spectrum """
-    # ra, dec, wavelengths, faraday depth
     phase = numpy.zeros([len(phi_sample), len(wavelengths)], dtype=numpy.complex64)  
     derotated_wavelength = wavelengths - wavelengths.mean()
     for i, phi in enumerate(phi_sample):                  
@@ -103,6 +96,7 @@ def faraday_depth_interval(wavelengths, phi_max=None,
                        phi_min=None, dphi=None):
 
     """Computes the RM interval and resolution"""
+    #TODO: optimize this better booboo
     if phi_max is None:
         phi_max = (1.9/abs(numpy.diff(wavelengths)).max())
 
@@ -128,7 +122,11 @@ def compute_dispersion(x, y):
     return dispersion
 
 
-
+def read_mask(fits):
+    """get pixel coordinates for a mask"""
+    maskdata = read_data(fits, freq=False)
+    xpix, ypix = numpy.where(mask > 0)
+    return xpix, ypix
 
 
 def main():
@@ -138,30 +136,30 @@ def main():
              'in text format. These cubes should be (312), freq, ra, dec. '
              'There is an option for multi-processing, see numProcessor. '
              'The outputs are the Q and U  of Faraday dispersion (FD) cube, '
-             'RM map derived from peak in FD spectrum. A png plot of the RMSF. ')
+             'RM map derived from peak in FD spectrum. The RMSF amplitude and '
+             'the RM range in a text file.')
     add = parser.add_argument
     add("-v","--version", action="version",version=
         "{:s} version {:s}".format(parser.prog, __version__))
     add('-q', '--qcube', dest='qfits', help='Stokes Q cube (fits)')
     add('-u', '--ucube', dest='ufits', help='Stokes U cube (fits)')
     add('-f', '--freq', dest='freq', help='Frequency file (text)')  
-    add('-np', '--numpr', dest='numProcessor', help='number of cores to use. Default 1.', 
+    add('-ncore', '--numpr', dest='numProcessor', help='number of cores to use. Default 1.', 
         default=1, type=int)
-    add('-rn', '-rm-min', dest='phi_min', help='Minimum Faraday depth. Default None. '
+    add('-rmin', '--rm-min', dest='phi_min', help='Minimum Faraday depth. Default None. '
        'If not specified will be determined internally. See Brentjens (2005) paper.',
        type=float, default=None)
-    add('-rx', '-rm-max', dest='phi_max', help='Maximum Faraday depth. See -rn.',
+    add('-rmax', '--rm-max', dest='phi_max', help='Maximum Faraday depth. See -rn.',
        type=float, default=None)
-    add('-rs', '-rm-sample', dest='dphi', help='The sampling width in Faraday-space.',
+    add('-rstep', '--rm-sample', dest='dphi', help='The sampling width in Faraday-space.',
         type=float, default=None)
+    add('-mask', '--maskfits', dest='maskfits', help='A mask image (fits)', default=None)
     add('-o', '--prefix', dest='prefix', help='This is a prefix for output files.')
     
     
     #TODO: 1) RM cleaning, '
-    #TODO: 2) derotated the observed PA by RM_peak *wavelengths^2
-    #TODO: 3) take mask
+    #TODO: 2) derotate the observed PA by RM_peak *wavelengths^2
     #TODO: 4) add log file.
-    #TODO: 5) turn this into a software
 
     args = parser.parse_args()
 
@@ -175,7 +173,8 @@ def main():
     if len(errors) > 0:
         print(errors)
         sys.exit()
-  
+    global qdata, udata, phase, N_wave
+
     wavelengths =  (299792458.0/frequencies)**2 
     qdata, qhdr = read_data(args.qfits) # run Q-cube 
     udata, uhdr = read_data(args.ufits) # run U-cube
@@ -191,12 +190,17 @@ def main():
     N_wave, N_x, N_y = qdata.shape
     N_phi = len(phi_sample)
     
+    if args.maskfits:
+        x, y = read_mask(args.maskfits)
+    
+    else:
+        x, y = numpy.indices((N_x, N_y))
+        x = x.flatten()
+        y = y.flatten()
 
-    x, y = numpy.indices((N_x, N_y))
-    x = x.flatten()
-    y = y.flatten()
+    # compute the Faraday dispersion
     Faraday_Dispersion = numpy.zeros([N_phi, N_x, N_y ], dtype=numpy.complex64)
-    start_all= time.time()
+    start_all = time.time()
     pool = Pool(args.numProcessor)  
     for (xx, yy) in zip(x, y):  
        Faraday_Dispersion[:, xx, yy] = pool.apply(compute_dispersion, args=(xx, yy))
@@ -205,14 +209,15 @@ def main():
     Faraday_amp = numpy.absolute(Faraday_Dispersion)
     peaks = numpy.argmax(Faraday_amp, axis=0)
     RM_peak = phi_sample[peaks]
-    rmhdr = add_RM_to_fits_header(qhdr, phi_sample=[1])
+
+    # define  the prefix of the output data
     args.prefix = args.prefix or args.qfits.split('.')[0]
-    pyfits.writeto(args.prefix + '-RM.FITS', RM_peak, rmhdr, clobber=True)
-    
+    phase_amp = numpy.absolute(numpy.sum(phase, axis=1) )/N_wave
+
+    rmhdr = add_RM_to_fits_header(qhdr, phi_sample=[1])
     fdhdr = add_RM_to_fits_header(qhdr, phi_sample=phi_sample)
-    pyfits.writeto(args.prefix + '-QDISPER.FITS', Faraday_Dispersion.real, fdhdr, clobber=True)
-    pyfits.writeto(args.prefix + '-UDISPER.FITS', Faraday_Dispersion.imag, fdhdr, clobber=True)
-    
-    
-main()
+    numpy.savetxt(args.prefix + '-RMSF.txt', numpy.vstack((phi_sample, phase_amp) ) )
+    pyfits.writeto(args.prefix + '-RM.FITS', RM_peak, rmhdr, clobber=True)
+    pyfits.writeto(args.prefix + '-QRM.FITS', Faraday_Dispersion.real, fdhdr, clobber=True)
+    pyfits.writeto(args.prefix + '-URM.FITS', Faraday_Dispersion.imag, fdhdr, clobber=True)
 

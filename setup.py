@@ -15,7 +15,7 @@ requires = [
 ]
 
 
-setup(name="RMSYNTHESIS",
+setup(name="rm-synthesis",
     version=__version__,
     description="Rotation Measurement Synthesis and Cleaning Tool",
     author="Lerato Sebokolodi",
