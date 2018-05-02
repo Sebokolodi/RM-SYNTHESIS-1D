@@ -32,24 +32,23 @@ NB:The number of frequencies in 2 myst be the same as in 1.
 
 1. You can check for all the inputs using:
 
-            rmsynthesis -h
+                                  ``rmsynthesis -h``
             
 2. The require inputs (non-optional inputs are Stokes Q and U, and a frequency file). 
 
-
-            rmsynthesis -q Q.fits -u U.fits -f freq.txt 
+                                  ``rmsynthesis -q Q.fits -u U.fits -f freq.txt``
             
 3. If you want your outputs to have a certain name, then you can specify the prefix by adding:
 
-            rmsynthesis -q Q.fits -u U.fits -f freq.txt -o myprefix
+                                  ``rmsynthesis -q Q.fits -u U.fits -f freq.txt -o myprefix``
             
 4. You have an option to specify the range of Faraday depth by specifying the maximum, mininum and the sample width. These are in rad/m^2.
 
-            rmsynthesis -q Q.fits -u U.fits -f freq.txt -rn -3000 -rx 3000 -rs 30
+                                 ``rmsynthesis -q Q.fits -u U.fits -f freq.txt -rn -3000 -rx 3000 -rs 30``
 
 5. Another option is to include multiprocessing. This is highly recommended for speeding up the process especially if you going to be dealing with large images. 
-
-            rmsynthesis -q Q.fits -u U.fits -f freq.txt -np 3
+    
+                                 ``rmsynthesis -q Q.fits -u U.fits -f freq.txt -np 3``
 
 NB: 3 is the number of cores to use.
 
