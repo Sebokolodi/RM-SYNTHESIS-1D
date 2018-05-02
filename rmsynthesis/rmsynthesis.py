@@ -197,6 +197,7 @@ def main():
     x, y = numpy.indices((N_x, N_y))
     x = x.flatten()
     y = y.flatten()
+    # compute the Faraday dispersion
     Faraday_Dispersion = numpy.zeros([N_phi, N_x, N_y ], dtype=numpy.complex64)
     start_all = time.time()
     pool = Pool(args.numProcessor)  
@@ -207,13 +208,14 @@ def main():
     Faraday_amp = numpy.absolute(Faraday_Dispersion)
     peaks = numpy.argmax(Faraday_amp, axis=0)
     RM_peak = phi_sample[peaks]
+
     # define  the prefix of the output data
     args.prefix = args.prefix or args.qfits.split('.')[0]
+    phase_amp = numpy.absolute(numpy.sum(phase, axis=1) )
 
     rmhdr = add_RM_to_fits_header(qhdr, phi_sample=[1])
     fdhdr = add_RM_to_fits_header(qhdr, phi_sample=phi_sample)
-    numpy.savetxt(args.prefix + '-RMSF.txt', numpy.vstack((phi_sample, 
-            numpy.sum(phase, axis=1))))
+    numpy.savetxt(args.prefix + '-RMSF.txt', numpy.vstack((phi_sample, phase_amp) ) )
     pyfits.writeto(args.prefix + '-RM.FITS', RM_peak, rmhdr, clobber=True)
     pyfits.writeto(args.prefix + '-QDISPER.FITS', Faraday_Dispersion.real, fdhdr, clobber=True)
     pyfits.writeto(args.prefix + '-UDISPER.FITS', Faraday_Dispersion.imag, fdhdr, clobber=True)
