@@ -53,4 +53,7 @@ NB:The number of frequencies in 2 myst be the same as in 1.
 
 NB: 3 is the number of cores to use.
 
+6. You can supply a mask fits image to restrict the computation to areas of interest. The pixel of interest must be 1 otherwise 0. 
+                                  ```rmsynthesis -q Q.fits -u U.fits -f freq.txt -mask MASK.fits``
+
 
