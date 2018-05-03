@@ -17,7 +17,7 @@ requires = [
 
 setup(name="rm-synthesis",
     version=__version__,
-    description="Rotation Measurement Synthesis and Cleaning Tool",
+    description="Performs Rotation Measurement(RM) Synthesis and RM Cleaning on FITS Cube Images",
     author="Lerato Sebokolodi",
     author_email="mll.sebokolodi@gmail.com",
     url="https://github.com/Sebokolodi/RMSYNTHESIS/",
