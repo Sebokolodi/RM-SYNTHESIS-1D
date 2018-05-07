@@ -14,12 +14,12 @@ In our RM-Synthesis code, we evaluate each pixel at a time. This is the less opt
 
 pip install rm-synthesis
 
-**Dependencies:**
+**Packages Used:**
 
 1. Numpy
 2. Multiprocessing
 3. Astropy
-
+4. Cleanmask
 
 **Data Requirements:**
 
