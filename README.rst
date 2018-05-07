@@ -1,6 +1,6 @@
 **Description:**
 
-RM-Synthesis is technique used to transform polarised intensity measured in wavelength-space (lambda) to polarised intensity in Faraday-space (RM) -- see Brentjen & de Bruyn (2005) for more details.  Or vice versa.
+RM-Synthesis is technique used to transform polarised intensity measured in wavelength-space (lambda) to polarised intensity in Faraday-space (RM) or vice versa-- see Brentjen & de Bruyn (2005) for more details. 
 
 **Motivation and the Approach**
 
