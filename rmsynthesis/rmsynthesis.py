@@ -153,7 +153,9 @@ def main():
        type=float, default=None)
     add('-rstep', '--rm-sample', dest='dphi', help='The sampling width in Faraday-space.',
         type=float, default=None)
-    add('-mask', '--maskfits', dest='maskfits', help='A mask image (fits)', default=None)
+    add('-mask', '--maskfits', dest='maskfits', help='A mask image (fits). This package '
+        'comes with a tool called cleanmask to allow the user to create a mask, for more info '
+        'cleanmask -h', default=None)
     add('-o', '--prefix', dest='prefix', help='This is a prefix for output files.')
     
     

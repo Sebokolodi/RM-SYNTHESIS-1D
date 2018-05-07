@@ -11,7 +11,8 @@ scripts = [
 requires = [ 
     "numpy",
     "astropy",
-    "multiprocessing"
+    "multiprocessing",
+    "cleanmask"
 ]
 
 
