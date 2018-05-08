@@ -125,8 +125,8 @@ def compute_dispersion(x, y):
 
 def read_mask(fits):
     """get pixel coordinates for a mask"""
-    maskdata, mhdr = read_data(fits, freq=False)
-    xpix, ypix = numpy.where(maskdata > 0)
+    maskdata = read_data(fits, freq=False)
+    xpix, ypix = numpy.where(mask > 0)
     return xpix, ypix
 
 
