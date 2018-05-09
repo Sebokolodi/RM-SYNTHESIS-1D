@@ -80,13 +80,13 @@ def add_RM_to_fits_header(header, pol, phi_sample=None):
     hdr = header.copy()
     if len(phi_sample) >= 2:
         # if it is a cube then do this:
-        new_hdr = {'naxis3': len(phi_sample), 'crpix3':1.0,
-                  'cdelt3': phi_sample[1]-phi_sample[0], 
-                  'crval3': phi_sample[0], 'ctype3':'RM',
-                  'cunit3': 'rad/m^2', 'POL': '%s'%pol}
+        new_hdr = {'naxis3': len(phi_sample),
+                   'crpix3':1.0, 'cdelt3': phi_sample[1]-phi_sample[0], 
+                   'crval3': phi_sample[0], 'ctype3':'RM',
+                   'cunit3': 'rad/m^2', 'POL': '%s'%pol}
                   
     else:
-        new_hdr = {'naxis': 3, 'naxis3': 1, 'cunit3': 'rad/m^2', 
+        new_hdr = {'naxis3': 1, 'cunit3': 'rad/m^2', 
                    'ctype3':'RM', 'POL': '%s'%pol}
 
     hdr.update(new_hdr) 
