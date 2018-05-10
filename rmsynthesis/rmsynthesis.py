@@ -11,7 +11,12 @@ import os
 
 _path = os.path.realpath(__file__)
 _path = os.path.dirname(_path)
-execfile("%s/__init__.py"%_path)
+
+import pkg_resources
+try:
+    __version__ = pkg_resources.require("rm-synthesis")[0].version
+except pkg_resources.DistributionNotFound:
+    __version__ = "dev"
 
 
 def read_data(image, freq=True):
