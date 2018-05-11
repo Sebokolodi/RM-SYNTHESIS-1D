@@ -123,9 +123,11 @@ def compute_dispersion(x, y):
     start = time.time()
     P = qdata[:, x, y] + 1j * udata[:, x, y]
     dispersion = numpy.sum(P * phase, axis=1)/N_wave
+    dispersion_amp = numpy.absolute(dispersion)
+    ind = numpy.where(dispersion_amp == max(dispersion_amp))[0]
     end = time.time()
     print('Time %.6f secs for (%d, %d)'%(end-start, x, y))
-    return dispersion
+    return dispersion, dispersion_amp, ind
 
 
 def read_mask(fits):
@@ -133,6 +135,15 @@ def read_mask(fits):
     maskdata, mhdr = read_data(fits, freq=False)
     xpix, ypix = numpy.where(maskdata > 0)
     return xpix, ypix
+
+
+
+def save_fits(prefix, tag, header, sample, tosave):
+
+    """save fits files"""
+    hdr = add_RM_to_fits_header(header, tag, sample)
+    pyfits.writeto(prefix + '-%s.FITS'%tag, tosave, hdr, 
+           overwrite=True)
 
 
 def main():
@@ -206,45 +217,35 @@ def main():
         x, y = numpy.indices((N_x, N_y))
         x = x.flatten()
         y = y.flatten()
-
+    
+    wave_mean = wavelengths.mean()
     # compute the Faraday dispersion via multi-processing
     Faraday_Dispersion = numpy.zeros([N_phi, N_x, N_y ], dtype=numpy.complex64)
+    Amp_Dispersion = numpy.zeros([N_x, N_y])
+    RM_Peak = numpy.zeros([N_x, N_y])
+    Angle_Peak = numpy.zeros([N_x, N_y])
+
     start_all = time.time()
-    pool = Pool(args.numProcessor)  
-    for (xx, yy) in zip(x, y):  
-       Faraday_Dispersion[:, xx, yy] = pool.apply(compute_dispersion, args=(xx, yy))
+    pool = Pool(args.numProcessor)
+    for i, (xx, yy) in enumerate(zip(x, y)):  
+       dispersion, amp, ind = pool.apply(compute_dispersion, args=(xx, yy))
+       Faraday_Dispersion[:, xx, yy]  = dispersion
+       Amp_Dispersion[xx, yy] = amp[ind]
+       RM = phi_sample[ind] 
+       RM_Peak[xx, yy] = RM
+       Angle_Peak[xx, yy] = numpy.angle(dispersion[ind]) - RM * wave_mean
     end_all = time.time()
-    print('>>> The total time for multiprocessing is %.6f'%(end_all-start_all))
-   
-    print('>>> Extracting peaks in the Faraday spectrum, amplitude and angle...')
-
-    # get peak in the Faraday dispersion function, angle and RM
-    Faraday_amp = numpy.absolute(Faraday_Dispersion)
-    peaks = numpy.argmax(Faraday_amp, axis=0)
-    RM_peak = phi_sample[peaks]
-    FDispersion = numpy.take(Faraday_Dispersion, peaks)
-    FDangle = 0.5 * numpy.angle(FDispersion) - RM_peak * wavelengths.mean()
-    FDpeak = numpy.absolute(FDispersion)
+    print('>>> The total time for multiprocessing is %.6f.'%(end_all-start_all))
+  
     phase_amp = numpy.absolute(numpy.sum(phase, axis=1) )/N_wave
-
-    # get headers
-    rmhdr = add_RM_to_fits_header(qhdr, pol='RM', phi_sample=[1])
-    phdr  = add_RM_to_fits_header(qhdr, pol='POLI', phi_sample=[1])
-    ahdr  = add_RM_to_fits_header(qhdr, pol='POLA', phi_sample=[1])
-    fqhdr = add_RM_to_fits_header(qhdr, pol='QPOL', phi_sample=phi_sample)
-    fuhdr = add_RM_to_fits_header(qhdr, pol='UPOL', phi_sample=phi_sample)
-
     print('>>> Saving outputs...')
-    # save the data
     args.prefix = args.prefix or args.qfits.split('.')[0]
     numpy.savetxt(args.prefix  + '-RMSF.txt', numpy.vstack((phi_sample, phase_amp)) )
-    pyfits.writeto(args.prefix + '-RM.FITS', RM_peak, rmhdr, clobber=True)
-    pyfits.writeto(args.prefix + '-AMP.FITS', FDpeak, phdr, clobber=True)
-    pyfits.writeto(args.prefix + '-ANG.FITS', FDangle, ahdr, clobber=True)
-    pyfits.writeto(args.prefix + '-QRM.FITS', Faraday_Dispersion.real, 
-           fqhdr, clobber=True)
-    pyfits.writeto(args.prefix + '-URM.FITS', Faraday_Dispersion.imag,
-           fuhdr, clobber=True)
+    save_fits(args.prefix, 'RM' , qhdr, [1], RM_Peak)
+    save_fits(args.prefix, 'AMP', qhdr, [1], Amp_Dispersion)
+    save_fits(args.prefix, 'ANG', qhdr, [1], Angle_Peak)
+    save_fits(args.prefix, 'QFAR', qhdr, phi_sample, Faraday_Dispersion.real)
+    save_fits(args.prefix, 'UFAR', qhdr, phi_sample, Faraday_Dispersion.imag)
     print('>>> Done!')
 
 
